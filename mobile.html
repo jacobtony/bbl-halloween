@@ -9,6 +9,7 @@
     body{
         background-color: #000;
         margin: 0;
+        color: white; margin-left: 5%
     }
     canvas {
         margin: 10% 0%;
@@ -52,7 +53,8 @@
 </head>
 
 <body>
-    
+    <h1>BBL Halloween</h1>
+    <h2></h2>
     <!-- <button id="add-ball">Add Ball Randomly</button>-->
     <div id="options">
         <h2 id="player-bet-header"></h2>
@@ -81,6 +83,7 @@
             <option value="40">40</option>
             <option value="50">50</option>
         </select> -->
+        <h2>Click on top of pyramid</h2>
         <h2 id="player-bet-header"></h2>
         
     </div> 
@@ -229,7 +232,7 @@
 
     function userSelected($event){
         userId = $event.target.value  
-        playerBetHeader.innerText= `${userId} is betting ${ betAmount }`; 
+        playerBetHeader.innerText= `${userId} is betting.`; 
     }
     function betAmountSelected( $event ){
         betAmount = $event.target.value  
