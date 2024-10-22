@@ -273,7 +273,6 @@
       balls.push(newBall);
     }
     document.addEventListener('click', ( $event ) => {
-        debugger;
         $event.stopPropagation()
         let newBallXPos = $event.clientX
         if(newBallXPos < 240 || newBallXPos > 360 ){
