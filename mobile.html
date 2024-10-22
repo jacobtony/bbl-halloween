@@ -1,0 +1,312 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Canvas Game</title>
+  <style>
+    body{
+        background-color: #000;
+        margin: 0;
+    }
+    canvas {
+        margin: 10% 0%;
+        background-color: #000;
+    }
+
+   
+    
+     #options{
+        position: relative;
+        width: 100%;
+        margin: 10% auto;
+        
+
+    }
+    #user-select{
+        padding: 12px;
+        width: 50%;
+        margin-top: 10px;
+        
+    }
+    #bet-amount{
+        margin-top: 10px;
+        padding: 12px;
+        width: 250px;
+    }
+     #player-bet-header{
+        width: 100%;
+        margin-left: 10px;
+        color: white;
+        font-family: 'Courier New', Courier, monospace;
+    }
+    #click-indicator{
+        width: 30%;
+        color: white;
+        margin: 0 auto;
+        margin-top: 15px;
+    }
+
+  </style>
+</head>
+
+<body>
+    
+    <!-- <button id="add-ball">Add Ball Randomly</button>-->
+    <div id="options">
+        <h2 id="player-bet-header"></h2>
+        <select id="user-select">
+            <option style="display: none">Select Player</option>
+            <option value="ashin">Ashin</option>
+            <option value="boney">Boney</option>
+            <option value="nirmal">Nirmal</option>
+            <option value="robi">Robi</option>
+            <option value="jacob">Jacob</option>
+            <option value="hari">Hari</option>
+            <option value="jayadev">Jayadev</option>
+            <option value="rohit">Rohit</option>
+            <option value="nanditha_u">Nanditha Unnikrishnan</option>
+            <option value="nanditha_p">Nanditha Pillai</option>
+            <option value="sai">Sai Sree Nambiar</option>
+            <option value="niranjana">Niranjana</option>
+            <option value="rithu">Rithu</option>
+            <option value="anna">Anna</option>
+        </select>
+        <!-- <select id="bet-amount">
+            <option style="display: none">Select Bet</option>
+            <option value="10">10</option>
+            <option value="20">20</option>
+            <option value="30">30</option>
+            <option value="40">40</option>
+            <option value="50">50</option>
+        </select> -->
+        <h2 id="player-bet-header"></h2>
+        
+    </div> 
+    
+    <canvas id="gameCanvas" width="600" height="900"></canvas>
+
+   
+  
+    <!-- <p id="info-text">Click Above the pyramid to start or start from random position by clicking Add Ball</p> -->
+    
+  <script>
+    const playerBetHeader = document.getElementById('player-bet-header')
+    const canvas = document.getElementById('gameCanvas');
+    const ctx = canvas.getContext('2d'); // createCircle, createRectangle, createTriangle, createLine
+
+    const DECIMAL_MULTIPLIER = 10000;
+
+    const WIDTH = 600;
+    const HEIGHT = 700;
+    const ballRadius = 8;
+    const obstacleRadius = 4;
+    const gravity = pad(0.5);
+    const horizontalFriction = 0.2;
+    const verticalFriction = 0.3;
+    let balls = [];
+
+    const obstacles = [];
+    const sinks = [];
+
+    function pad(n) {
+      return n * DECIMAL_MULTIPLIER;
+    }
+
+    function unpad(n) {
+      return Math.floor(n / DECIMAL_MULTIPLIER);
+    }
+
+    // Create obstacles in a pyramid shape
+    const rows = 18;
+    for (let row = 1; row < rows; row++) {
+      const numObstacles = row + 1;// 3
+      const y = row===0 ? obstacleRadius: row * 35;
+      const spacing = 30;
+      for (let col = 0; col < numObstacles; col++) {
+        const x = WIDTH / 2 - spacing * (row / 2 - col);
+        obstacles.push({ x: pad(x), y: pad(y), radius: obstacleRadius });
+      }
+    }
+
+    // Create sinks at the bottom as rectangles
+    const sinkWidth = 30;
+    const NUM_SINKS = 17;
+    for (let i = 0; i < NUM_SINKS; i++) {
+      const x = WIDTH / 2 + (i - 8.5) * (sinkWidth) + obstacleRadius;
+      const y = HEIGHT - 70;
+      const width = sinkWidth;
+      const height = width;
+      sinks.push({ x, y, width, height });
+    }
+    sinks[0].point = sinks[16].point = 8;
+    sinks[1].point = sinks[15].point = 7;
+    sinks[2].point = sinks[14].point = 6;
+    sinks[3].point = sinks[13].point = 5;
+    sinks[4].point = sinks[12].point = 4;
+    sinks[5].point = sinks[11].point = 3;
+    sinks[6].point = sinks[10].point = 2;
+    sinks[7].point = sinks[9].point = 1;
+    sinks[8].point = sinks[8].point = 0.5;
+    let userId="";
+    let betAmount=0;
+    
+
+
+
+
+
+
+    class Ball {
+      constructor(x, y, radius, color) {
+        this.x = x;
+        this.y = y;
+        this.radius = radius;
+        this.color = color;
+        this.vx = 0;
+        this.vy = 0;
+        this.resultEvaluated = false;
+      }
+
+      draw() {
+        ctx.beginPath();
+        ctx.arc(unpad(this.x), unpad(this.y), this.radius, 0, Math.PI * 2);
+        ctx.fillStyle = this.color;
+        ctx.fill();
+        ctx.closePath();
+      }
+      
+      update() {
+        // change the velocity, change the positions
+        if( this.y > 6300000 )
+        return;
+        this.vy = this.vy + gravity;
+        this.x += this.vx; // x = x1 + v
+        this.y += this.vy;
+
+        // Collision with obstacles
+        obstacles.forEach(obstacle => {
+          const dist = Math.hypot(this.x - obstacle.x, this.y - obstacle.y);
+          if (dist < pad(this.radius + obstacle.radius)) {
+            // Calculate collision angle
+            const angle = Math.atan2(this.y - obstacle.y, this.x - obstacle.x);
+            // Reflect velocity
+            const speed = Math.sqrt(this.vx * this.vx + this.vy * this.vy);
+            this.vx = (Math.cos(angle) * speed * horizontalFriction);
+            this.vy = Math.sin(angle) * speed * verticalFriction;
+            
+            // Adjust position to prevent sticking
+            const overlap = this.radius + obstacle.radius - unpad(dist);
+            this.x += pad(Math.cos(angle) * overlap);
+            this.y += pad(Math.sin(angle) * overlap);
+          }
+        });
+
+        // Collision with sinks
+        sinks.forEach(sink => {
+          if (
+            unpad(this.x) > sink.x - sink.width / 2 &&
+            unpad(this.x) < sink.x + sink.width / 2 &&
+            unpad(this.y) + this.radius > sink.y - sink.height / 2 &&
+            this.resultEvaluated === false
+          ) {
+            console.log(sink.point)
+            this.vx = 0;
+            this.vy = 0;
+            this.resultEvaluated = true;
+            //addProfitsToUser();
+          }
+        });
+      }
+    }
+
+
+
+
+    // const initialBall = new Ball(pad(WIDTH / 2 + 40), pad(50), ballRadius, 'red');
+    // balls.push(initialBall);
+
+    function userSelected($event){
+        userId = $event.target.value  
+        playerBetHeader.innerText= `${userId} is betting ${ betAmount }`; 
+    }
+    function betAmountSelected( $event ){
+        betAmount = $event.target.value  
+        playerBetHeader.innerText= `${userId} is betting ${ betAmount }`;
+    }
+
+    function drawObstacles() {
+      ctx.fillStyle = 'white';
+      obstacles.forEach(obstacle => {
+        ctx.beginPath();
+        ctx.arc(unpad(obstacle.x), unpad(obstacle.y), obstacle.radius, 0, Math.PI * 2);
+        ctx.fill();
+        ctx.closePath();
+      });
+    }
+
+    function drawSinks() {
+      
+      for (let i = 0; i<sinks.length; i++)  {
+        const sink = sinks[i];
+        ctx.fillStyle = 'white';
+        ctx.fillRect(sink.x, sink.y - sink.height / 2, sink.width - obstacleRadius * 2, sink.height);
+        ctx.textAlign="center"; 
+        ctx.font="15px Verdana"; 
+        ctx.textBaseline = "middle";
+        ctx.fillStyle = "black"
+        ctx.fillText(`${sink.point}`, sink.x+sink.width/2-2, sink.y+2)
+      };
+    }
+
+    function addBall(newBallXPos) {
+    //   const randomNumber = Math.random();
+    //   let newBallXPos = WIDTH/2-36;;
+    
+      const newBall = new Ball(pad(newBallXPos ), pad(0), ballRadius, 'red');
+      balls.push(newBall);
+    }
+    document.addEventListener('click', ( $event ) => {
+        debugger;
+        $event.stopPropagation()
+        let newBallXPos = $event.clientX
+        if(newBallXPos < 240 || newBallXPos > 360 ){
+            return;
+        }
+        
+        addBall( newBallXPos )
+    })
+
+    function addBallStart(){
+        let newBallXPos = 364+Math.random()*40;
+        addBall( newBallXPos )
+    }
+
+    
+
+    // document.getElementById('add-ball').addEventListener('click', addBallStart);
+
+    function draw() {
+      ctx.clearRect(0, 0, WIDTH, HEIGHT);
+      drawObstacles();
+      drawSinks();
+      balls.forEach(ball => {
+        ball.draw();
+        ball.update();
+      });
+    }
+
+    function update() {
+      draw();
+      requestAnimationFrame(update);
+    }
+
+    update();
+    document.getElementById('user-select').addEventListener('change', userSelected)
+    document.getElementById('bet-amount').addEventListener('change', betAmountSelected)
+
+  </script>
+</body>
+
+</html>
